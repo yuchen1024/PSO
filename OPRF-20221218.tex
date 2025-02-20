@@ -1,0 +1,754 @@
+% switch between git and local
+\newif\ifGit
+\Gittrue
+%\Gitfalse
+
+% set path
+\ifGit
+    \newcommand{\stylepath}{.}
+    \newcommand{\bibpath}{.}
+\else
+    \newcommand{\stylepath}{/Users/yuchen/Documents/Research/PaperEngine/paper}
+    \newcommand{\bibpath}{/Users/yuchen/Documents/Research/PaperEngine/bib}
+\fi
+
+% switch between Chinese and English
+\newif\ifChinese
+%\Chinesetrue
+\Chinesefalse
+
+
+\documentclass[a4paper,10pt]{article}
+
+
+\input{\stylepath/mypapersetting}
+
+
+
+\newcommand{\FuncOT}{\mathcal{F}_\mathsf{OT}}
+\newcommand{\FuncMQRPMT}{\mathcal{F}_\mathsf{mqRPMT}}
+\newcommand{\FuncOPRF}{\mathcal{F}_\mathsf{OPRF}}
+\newcommand{\FuncPSU}{\mathcal{F}_\mathsf{PSU}}
+\newcommand{\FuncPSI}{\mathcal{F}_\mathsf{PSI}}
+\newcommand{\FuncPSO}{\mathcal{F}_\mathsf{PSO}}
+
+\newcommand{\SimR}{\mathsf{Sim}_\mathcal{R}}
+\newcommand{\SimS}{\mathsf{Sim}_\mathcal{S}}
+
+% \usepackage{authblk}
+
+\begin{document}
+
+\thispagestyle{empty}
+
+\title{OPRF from Input-Homomorphic Publicly Evaluable PRF}
+
+
+\author{
+  Yu Chen
+  \thanks{Shandong University. 
+        Email: \blue{\texttt{yuchen.prc@gmail.com}}}
+  \and
+  % Minglang Dong
+  % \thanks{Shandong University. 
+  %       Email: \blue{\texttt{minglang\_dong@mail.sdu.edu.cn}}}
+  \and
+  Yamin Liu
+  \thanks{Shield Lab, Huawei. Email: \blue{\texttt{liuyamin3@huawei.com}}}
+}
+
+
+
+\date{}
+
+\maketitle
+
+\begin{abstract}
+
+Oblivious pseudorandom function (OPRF), a counterpart of PRF in distributed setting, 
+has become a ubiquitous primitive used in secure multi-party computation.  
+In this work, we provide a generic construction of OPRF from publicly evaluable PRF with input-homomorphic property. 
+By plugging PEPRF from efficient group action (EGA) to the generic construction, we obtain a OPRF with plausible post-quantum security.  
+           
+\begin{trivlist}
+\item \textbf{Keywords:} OPRF, homomorphic, PEPRF
+\end{trivlist}
+\end{abstract}
+
+\thispagestyle{empty}
+
+\newpage
+\setcounter{tocdepth}{2}
+\tableofcontents
+\newpage
+
+\pagestyle{plain}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+    
+    
+\section{Introduction}\label{sec:introduction}
+Pseudorandom functions (PRFs) is a core cryptographic primitive with numerous applications. 
+Two decades later, Freedman et al.~\cite{FIPR-TCC-2005} introduce its counterpart in the distributed setting, 
+namely oblivious pseudorandom functions (OPRF). 
+In a nutshell, OPRF is an interactive 2-party protocol between a client with input $\{x_i\}_{i \in [n]}$,  
+and a server with secret key $k$. 
+It allows the client learn $\{F_k(x_i)\}_{i \in [n]}$ without anything else, and the server learns nothing. 
+Formally, from the perspective of 2-party secure computation, an OPRF is a protocol securely 
+fulfills the functionality $\mathcal{F}_\text{oprf} = (\bot, \{F_k(x_i)\}_{i \in [n]})$.   
+OPRFs have shown to be a central primitive for building oblivious keyword search~\cite{FIPR-TCC-2005}, 
+private set intersection~\cite{KKRT-CCS-2016, HL-JoC-2010, CM-CRYPTO-2020}, 
+secure data de-duplication~\cite{CCGS-FC-2019}, 
+password-authenticated key exchange (PAKE)~\cite{JKK-ASIACRYPT-2014,JKX-EUROCRYPT-2018}, 
+private information retrieval~\cite{FIPR-TCC-2005}, secure pattern matching~\cite{FHV-ICALP-2013}, 
+cloud key management~\cite{JKR-CCS-2019}. 
+
+% Quantum security of PRF (see BCR)
+So far, except the OPRFs based on symmetric primitives, all known efficient OPRF constructions 
+rely on number-theoretical assumptions, which are not post-quantum secure. 
+Recently, Boneh et al.~\cite{BKW-ASIACRYPT-2020} propose an isogency-based OPRF. 
+Albrecht et al.~\cite{ADDS-PKC-2021} present a lattice-based OPRF with \emph{verifiable} property. 
+These two constructions are post-quantum secure, but both them only serves as nice feasibility results, 
+rather than practical results with good performance.  
+
+
+\subsection{Motivation}
+Motivated by the state of affairs, we are intrigued to know:
+\begin{center}
+\emph{Is there a generic construction of OPRF which admits for efficient instantiation?} 
+\end{center}  
+
+\subsection{Our Contribution}
+In this work, we make positive answers to the aforementioned questions. 
+We present a generic construction of OPRF from PEPRF with input-homomorphic property, 
+then give an efficient post-quantum secure instantiation from EGA.     
+
+%We summarize our contribution as below. 
+
+% \begin{trivlist}
+% \item \textbf{Generic construction from PEPRF.} We first present a generic construction of OPRF 
+%     from PEPRF with input-homomorphic property.   
+
+% \item \textbf{Efficient instantiations from lattice.}  
+% \end{trivlist}
+
+
+% \subsection{Technical Overview}
+
+
+
+% \subsection{Related Works}
+
+
+\section{Preliminaries}\label{sec:preliminaries}
+
+\subsection{Notation}
+We use $\kappa$ and $\lambda$ to denote the computational and statistical parameter respectively. 
+Let $\mathbb{Z}_n$ be the set $\{0,1, \dots, n-1\}$, $\mathbb{Z}_n^* = \{x \in \mathbb{Z}_n \mid \text{gcd}(x, n) = 1\}$. 
+We use $[n]$ to denote the set $\{1, \dots, n\}$, 
+and use $\mathsf{Perm}[n]$ to denote all the permutation over the set $\{1, \dots, n\}$. 
+We assume that every set $X$ has a default order (e.g. lexicographical order), 
+and write it as $X = \{x_1, \dots, x_n\}$.
+For a set $X$, we use $|X|$ to denote its size and use $x \sample X$ to denote sampling $x$ uniformly at random from $X$.
+We use $(x_1, \dots, x_n)$ to denote a vector, whose $i$th element is $x_i$.  
+A function is negligible in $\kappa$, written $\mathsf{negl}(\kappa)$, 
+if it vanishes faster than the inverse of any polynomial in $\kappa$.
+A probabilistic polynomial time (PPT) algorithm is a randomized algorithm that runs in polynomial time. 
+
+\subsection{Weak Pseudorandom EGA}\label{subsec:EGA}
+We begin by recalling the definition of a group action. 
+\begin{definition}[Group Actions]
+A group $\mathbb{G}$ is said to \emph{act on} a set $X$ if there is a map $\star: \mathbb{G} \times X \rightarrow X$ 
+that satisfies the following two properties: 
+\begin{enumerate}
+    \item Identity: if $e$ is the identity element of $\mathbb{G}$, then for any $x \in X$, we have $e \star x = x$. 
+    \item Compatibility: for any $g, h \in \mathbb{G}$ and any $x \in X$, 
+        we have $(gh) \star x = g \star (h \star x)$. 
+\end{enumerate}
+\end{definition}
+
+From now on, we use the abbreviated notation $(\mathbb{G}, X, \star)$ to denote a group action. 
+If $(\mathbb{G}, X, \star)$ is a group action, for any $g \in \mathbb{G}$ the map $\phi_g: x \mapsto g \star x$ 
+defines a permutation of $X$. 
+
+We then define an effective group action (EGA)~\cite{AFMP-ASIACRYPT-2020} as follows. 
+\begin{definition}[Effective Group Actions]
+A group action $(\mathbb{G}, X, \star)$ is \emph{effective} if the following properties are satisfied:  
+\begin{enumerate}
+\item The group $\mathbb{G}$ is finite and there exist PPT algorithms for: 
+\begin{enumerate}
+    \item Membership testing, i.e., to decide if a given bit string represents a valid group element in $\mathbb{G}$. 
+    \item Equality testing, i.e., to decide if two bit strings represent the same group element in $\mathbb{G}$.
+    \item Sampling, i.e., to sample an element $g$ from a uniform (or statistically close to) distribution on $\mathbb{G}$.  
+    \item Operation, i.e., to compute $gh$ for any $g, h \in \mathbb{G}$. 
+    \item Inversion, i.e., to compute $g^{-1}$ for any $g \in \mathbb{G}$.
+\end{enumerate}
+
+\item The set $X$ is finite and there exist PPT algorithms for: 
+\begin{enumerate}
+    \item Membership testing, i.e., to decide if a bit string represents a valid set element. 
+
+    \item Unique representation, i.e., given any set element $x \in X$, 
+        compute a string $\hat{x}$ that canonically represents $x$.
+\end{enumerate}
+
+\item There exists a distinguished element $x_0 \in X$, 
+    called the origin, such that its bit-string representation is known.
+
+\item There exists an efficient algorithm that given (some bit-string representations of) any $g \in \mathbb{G}$ 
+    and any $x \in X$, outputs $g \star x$.
+\end{enumerate} 
+\end{definition}
+
+\begin{definition}[Weak Pseudorandom EGA]
+A group action $(G, X, \star)$ is weakly pseudorandom if the family of efficiently commutable permutation 
+$\{\phi_g: X \rightarrow X\}_{g \in G}$ is weakly pseudorandom, i.e., 
+there is no PPT adversary that can distinguish tuples of the form $(x_i, g \star x_i)$ 
+from $(x_i, u_i)$ where $g \sample \mathbb{G}$ and each $x_i, u_i \sample X$.
+\end{definition}
+
+
+\subsection{MPC in the Semi-honest Model}
+We use the standard notion of security in the presence of semi-honest adversaries. 
+Let $\Pi$ be a two-party protocol for computing the function $f(x_1, x_2)$, where party $P_i$ has input $x_i$. 
+We define security in the following way.
+For each party $P$, let $\text{View}_P(x_1, x_2)$ denote the view of party $P$ 
+during an honest execution of $\Pi$ on inputs $x_1$ and $x_2$. 
+The view consists of $P$'s input, random tape, and all messages exchanged as part of the $\Pi$ protocol. 
+
+\begin{definition}
+2-party protocol $\Pi$ securely realizes $f$ in the presence of semi-honest adversaries if 
+there exists a simulator $\mathsf{Sim}$ such that for all inputs $x_1, x_2$ and all $i \in \{1,2\}$:
+\begin{gather*}
+\mathsf{Sim}(i, x_i, f(x_1, x_2)) \approx_c \text{View}_{P_i}(x_1, x_2)
+\end{gather*}
+\end{definition}
+Roughly speaking, a protocol is secure if the party with $x_i$ 
+learns no more information other than $f(x_1, x_2)$ and $x_i$.  
+
+
+
+
+
+
+
+
+\section{Review of Pseudorandom Function}
+In this section, we first recall the notion of standard pseudorandom functions (PRFs)~\cite{GGM-JACM-1986}, 
+then recap its counterpart in the public-key setting, 
+namely publicly evaluable pseudorandom functions~\cite{CZ-SCN-2014}. 
+
+\subsection{Standard PRF}
+\begin{definition}[PRF]
+A family of PRFs consists of three polynomial-time algorithms as follows: 
+\begin{itemize}
+\item $\mathsf{Setup}(1^\kappa)$: on input a security parameter $\kappa$, 
+    outputs public parameter $pp$ specifying $(F, K, X, Y)$, 
+    where $F: K \times X \rightarrow Y$ is a family of keyed functions, 
+    $K$ is the key space, $X$ is domain, and $Y$ is range.
+
+\item $\mathsf{KeyGen}(pp)$: on input $pp$, outputs a secret key $k \sample K$. 
+
+\item $\mathsf{Eval}(k, x)$: on input $k \in K$ and $x \in X$, outputs $y \leftarrow F(k, x)$. 
+    For notation convenience, we will write $F(k, x)$ as $F_k(x)$ interchangeably. 
+\end{itemize}
+
+\begin{trivlist}
+\item \textbf{Correctness:} For any $\kappa \in \mathbb{N}$, 
+    any $pp \leftarrow \mathsf{Setup}(1^\kappa)$ and any $k \leftarrow \mathsf{KeyGen}(pp)$, 
+    we have $F_{sk}(x) = \mathsf{Eval}(k, x)$. 
+
+\item \textbf{Pseudorandomness.} Let $\mathcal{A}$ be an adversary against PRFs and define its advantage as:
+\begin{displaymath}
+    \mathsf{Adv}_\mathcal{A}(\kappa) =
+        \Pr \left[ \beta' = \beta:~
+        \begin{array}{l}
+            pp \leftarrow \mathsf{Setup}(1^\kappa);\\
+            k \leftarrow \mathsf{KeyGen}(pp);\\
+            \beta \leftarrow \{0,1\}; \\
+            \beta' \leftarrow \mathcal{A}^{\mathcal{O}_\mathsf{ror}(\beta, \cdot)}(\kappa);
+        \end{array} 
+        \right] - \frac{1}{2},
+\end{displaymath}
+where $\mathcal{O}_\mathsf{ror}(\beta, \cdot)$ denotes the real-or-random oracle controlled by $\beta$, 
+i.e., $\mathcal{O}_\mathsf{ror}(0, x) = F_k(x)$, $\mathcal{O}_\mathsf{ror}(1, x) = \mathsf{H}(x)$ 
+(here $\mathsf{H}$ is chosen uniformly at random from all the functions 
+from $D$ to $R$\footnote{To efficiently simulate access to a uniformly random function $\mathsf{H}$ from $D$ to $R$, 
+one may think of a process in which the adversary's queries to $\mathcal{O}_\mathsf{ror}(1, \cdot)$ 
+are ``lazily'' answered with independently and randomly chosen elements in $R$, 
+while keeping track of the answers so that queries made repeatedly are answered consistently.}). 
+$\mathcal{A}$ can adaptively access the oracle $\mathcal{O}_\mathsf{ror}(\beta, \cdot)$ polynomial many times.
+We say that $F$ is pseudorandom if for any PPT adversary $\mathsf{Adv}_\mathcal{A}(\kappa)$ is negligible in $\kappa$. 
+We refer to such security as full PRF security. 
+\end{trivlist}
+\end{definition}
+
+Sometimes the full PRF security is not needed and it is sufficient 
+if the function cannot be distinguished from a uniform random one when challenged on random inputs. 
+The formalization of such relaxed requirement is \emph{weak pseudorandomness}, 
+which is defined the same way as pseudorandomness except that the inputs of 
+oracle $\mathcal{O}_\mathsf{ror}(\beta, \cdot)$ are uniformly chosen from $X$ by the challenger
+instead of adversarially chosen by $\mathcal{A}$. 
+PRFs that satisfy weak pseudorandomness are referred to as \emph{weak PRFs}.  
+
+\begin{remark}
+In a standard PRF, it is always harmless to explicitly introduce a public key, 
+which includes the information related to secret key that can be made public. 
+For example, in the Naor-Reingold PRF~\cite{NR-JACM-2004} based on the DDH assumption: 
+$\mathsf{F}_{\vec{a}}(x) = (g^{a_0})^{\prod_{x_i=1}a_i}$, 
+where $\vec{a} = (a_0, a_1, \dots, a_n) \in \mathbb{Z}_p^n$ is the secret key, 
+$g^{a_i}$ for $1 \leq i \leq n$ can be safely published as the public key.  
+If no information can be made public, one can simply set $pk = \bot$. 
+Looking ahead, such treatment allows us get a unified syntax of PRF 
+in both $\mathsf{minicrypt}$ and $\mathsf{cryptmania}$.     
+\end{remark}
+
+\subsection{Publicly Evaluable PRF}
+\begin{definition}[Publicly Evaluable PRFs]\label{def:PEPRF}
+A family of PEPRFs consists of four polynomial-time algorithms as follows:
+\begin{itemize} 
+    \item $\mathsf{Setup}(1^\kappa)$: on input a security parameter $\kappa$, 
+        output public parameter $pp$ specifying $(F, PK, SK, X, \allowbreak Y, L, W)$, 
+        where $F: SK \times X \rightarrow Y \cup \bot$ is family of keyed functions, 
+        $SK$ is the secret key space, $PK$ is the corresponding public key space, 
+        $X$ is domain, $Y$ is range, 
+        $L \subseteq X$ is a NP language defined by some hard relation $\mathsf{R}_L$, 
+        and $W$ is the space of associated witnesses. 
+        Here, we assume that $\mathsf{R}_L$ is efficiently sampleable, 
+        that is, there exists a PPT algorithm $\mathsf{SampRel}$ 
+        which on input random coins $r$, output a random tuple $(x, w) \in \mathsf{R}_L$.   
+
+    \item $\mathsf{KeyGen}(pp)$: on input $pp$, output a secret key $sk$ and 
+        an associated public key $pk$.\footnote{In a standard PRF, 
+        it is also harmless to explicitly introduce a public key, 
+        which includes the information related to secret key that can be made public. 
+        For example, in the Naor-Reingold PRF~\cite{NR-JACM-2004} based on the DDH assumption: 
+        $\mathsf{F}_{\vec{a}}(x) = (g^{a_0})^{\prod_{x_i=1}a_i}$, where
+        $\vec{a} = (a_0, a_1, \dots, a_n) \in \mathbb{Z}_p^n$ is the secret key, 
+        $g^{a_i}$ for $1 \leq i \leq n$ can be safely published as the public key.  
+        If no information can be made public, one can always assume $pk = \{\bot\}$.}     
+    
+    \item $\mathsf{PrivEval}(sk, x)$: on input $sk$ and $x \in X$, 
+        output $y \in Y \cup \bot$.  
+
+    \item $\mathsf{PubEval}(pk, x, w)$: on input $pk$ and $x \in L$ together with a witness $w \in W$, 
+        output $y \in Y$.  
+\end{itemize}
+\end{definition}
+
+\begin{trivlist}
+\item \textbf{Correctness:} For any $\lambda \in \mathbb{N}$, 
+    any $pp \leftarrow \mathsf{Setup}(1^\lambda)$ and any $(pk, sk) \leftarrow \mathsf{KeyGen}(pp)$, we have:
+    \begin{eqnarray*}
+        & \forall x \in X: & F_{sk}(x) = \mathsf{PrivEval}(sk, x)\\
+        & \forall x \in L \text{~with a witness~} w: & F_{sk}(x) = \mathsf{PubEval}(pk, x, w)
+    \end{eqnarray*} 
+
+\item \textbf{Input homomorphic:} Suppose $L \subseteq X$ and $Y$ are finite abelian groups. 
+    $F$ is input homomorphic if for any $x_1, x_2 \in L$ we have $F_{sk}(x_1+x_2) = F_{sk}(x_1)+F_{sk}(x_2)$.    
+
+\item \textbf{Weak pseudorandomness:} Let $\mathcal{A}$ be an adversary 
+    against PEPRFs and define its advantage as:
+    \begin{displaymath}
+        \mathsf{Adv}_\mathcal{A}(\lambda) =
+            \Pr \left[\beta = \beta':~ 
+                \begin{array}{ll}
+                    & pp \leftarrow \mathsf{Setup}(1^\lambda);\\
+                    & (pk, sk) \leftarrow \mathsf{KeyGen}(pp);\\
+                    & \{r_i^* \sample R, (x_i^*, w_i^*) \leftarrow \mathsf{SampRel}(r_i^*)\}_{i=1}^{p(\lambda)};\\
+                    & \beta \leftarrow \{0,1\};\\   
+                    & \beta' \leftarrow \mathcal{A}(pp, pk,  
+                    \{x_i^*, \mathcal{O}_\mathsf{ror}(\beta, x_i^*)\}_{i=1}^{p(\lambda)});
+                \end{array} 
+            \right] - \frac{1}{2},
+    \end{displaymath}
+\end{trivlist}
+where $p(\kappa)$ is any polynomial, 
+$\mathcal{O}_\mathsf{ror}(\beta, \cdot)$ is the real-or-random oracle. 
+We say that $F$ is weak pseudorandom if for any PPT adversary 
+$\mathcal{A}$ its advantage function $\mathsf{Adv}_\mathcal{A}(\kappa)$ is negligible in $\kappa$. 
+
+Looking ahead, to simplify the security proof we will use a one-time flavor definition 
+that $\mathcal{A}$ only queries $\mathcal{O}_\mathsf{ror}$ once when arguing the security of PEPRF constructions. 
+A standard hybrid argument shows that such seemingly restricted definition is actually equivalent to 
+the standard multi-query definition.
+
+\begin{remark}
+    Different from standard PRFs, PEPRFs require the existence 
+    of a language $L \subseteq X$ as well as a public evaluation algorithm.
+    Due to this strengthening on functionality, 
+    we cannot hope to achieve standard pseudorandomness, 
+    and hence weak pseudorandomness is the best we can achieve.   
+\end{remark} 
+
+
+\section{OPRF from Input-Homomorphic PEPRF}\label{sec:OPRF-from-PEPRF}
+\subsection{Definition of OPRF}
+In Figure~\ref{figure:func-oprf}, 
+we adapt the definion of multi-point OPRF~\cite{CM-CRYPTO-2020} under unified PRF syntax.   
+
+\begin{figure}[!hbtp]
+\begin{framed}
+\begin{minipage}[center]{\textwidth}
+\begin{trivlist}
+\item \textbf{Parameters:} A PRF $F: SK \times X \rightarrow Y$, and two parties: server $P_1$ and client $P_2$
+
+\item \textbf{Functionality:}
+\begin{enumerate}
+\item Generate a key pair $(pk, sk)$ for PRF. Give $(pk, sk)$ to $P_1$ and give $pk$ to $P_2$. 
+\item Wait for input $(x_1, \dots, x_n)$ from $P_2$. Give $(F_{sk}(x_1), \dots, F_{sk}(x_n))$ to $P_2$
+\end{enumerate}
+\end{trivlist}
+\end{minipage}
+\end{framed}
+\caption{Ideal functionality $\FuncMQRPMT$ for multi-point OPRF}\label{figure:func-oprf}
+\end{figure}
+
+\subsection{Construction from Input-Homomorphic PEPRF}
+In Figure~\ref{figure:OPRF-from-PEPRF}, 
+we show how to build OPRF $F: SK \times \{0,1\}^{\ell} \rightarrow Y$ from PEPRF $G: SK \times X \rightarrow Y$ 
+and cryptographic hash function $\mathsf{H}: \{0,1\}^\ell \rightarrow L$. 
+
+\begin{remark}
+Looking ahead, $\mathsf{H}: \{0,1\}^\ell \rightarrow L$ will be modeled as a random oracle. 
+This implicitly requires $L$ is dense. 
+\end{remark}
+
+\begin{figure}[!hbtp]
+\begin{framed}
+\begin{minipage}[center]{\textwidth}
+\begin{trivlist}
+\item \textbf{Parameters:} 
+\begin{itemize}
+    \item Common input: PEPRF $G: SK \times X \rightarrow Y$, hash function $\mathsf{H}: \{0,1\}^\ell \rightarrow L$. 
+
+    \item Input of server $P_1$: security parameter $\kappa$.
+
+    \item Input of client $P_2$: $X = \{x_1, \dots, x_n\} \subseteq \{0,1\}^\ell$ 
+\end{itemize}
+
+\item \textbf{Protocol:}
+
+\begin{enumerate}
+\item $P_1$ runs $pp \leftarrow \text{PEPRF}.\mathsf{Setup}(1^\kappa)$ 
+    and $(pk, sk) \leftarrow \text{PEPRF}.\mathsf{KeyGen}(pp)$, 
+    then sends $pp$ and $pk$ to $P_2$. 
+
+\item $P_2$ runs $\mathsf{SampRel}(pp)$ independently $n$ times and obtains $n$ tuples $(z_i, w_i)$, 
+    then sends $\{\mathsf{H}(x_i)+z_i\}_{i \in [n]}$ to $P_1$. 
+
+\item $P_1$ computes $v_i \leftarrow \{F_{sk}(\mathsf{H}(x_i)+z_i)\}_{i \in [n]}$ and sends them to $P_2$. 
+    $P_2$ computes $y_i \leftarrow v_i - \text{PEPRF}.\mathsf{PubEval}(pk, z_i, w_i)$.    
+\end{enumerate}
+\end{trivlist}
+\end{minipage}
+\end{framed}
+
+\begin{center}
+\begin{tikzpicture}
+\node[textnode, name=common-input] {$G: SK \times X \rightarrow Y$, $\mathsf{H}: \{0,1\}^\ell \rightarrow X$};
+\node[textnode, name=P1, below of = common-input, xshift=-15em, yshift=-1.5em] {$P_1$ (server)};
+\node[textnode, below of = P1, yshift=-1em] {$\kappa$};  
+\node[textnode, name=P2, below of = common-input, xshift=15em, yshift=-1.5em] {$P_2$ (client)}; 
+\node[textnode, below of = P2, yshift=-1em] {$X = (x_1, \dots, x_n)$};  
+
+\node[textnode, name = k1, below of = P1, yshift=-3em] 
+    {$pp \leftarrow \text{PEPRF}.\mathsf{Setup}(1^\kappa)$\\
+     $(pk, sk) \leftarrow \text{PEPRF}.\mathsf{KeyGen}(pp)$};
+\draw ($(P1.east)+(5em, -3em)$) edge[->] node[above] {$pp$, $pk$} ($(P2.west)+(-5em, -3em)$);  
+
+\node[textnode, name = k2, below of = P2, yshift=-6em] {$(z_i, w_i) \leftarrow \mathsf{SampRel}(pp)$};
+\draw ($(P2.west)+(-5em, -6em)$) edge[->] node[above] {$\{\mathsf{H}(x_i)+z_i\}_{i \in [n]}$}  
+                                          ($(P1.east)+(5em, -6em)$);
+
+
+\draw ($(P1.east)+(5em, -9em)$) edge[->] node[above] {$\{v_i \leftarrow F_{sk}(\mathsf{H}(x_i)+z_i)\}_{i \in [n]}$} 
+    ($(P2.west)+(-5em, -9em)$);  
+
+
+\node[textnode, name = result, below of = P2, yshift=-9em] 
+    {$\alpha_i \leftarrow \text{PEPRF}.\mathsf{PubEval}(pk, z_i, w_i)$\\$y_i \leftarrow v_i - \alpha_i$}; 
+\end{tikzpicture}
+\end{center}
+
+\caption{OPRF from input-homomorphic PEPRF}\label{figure:OPRF-from-PEPRF}
+\end{figure} 
+
+
+\begin{trivlist}
+\item \textbf{Correctness.} The correctness of the above OPRF construction follows from that of 
+    input-homomorphic PEPRF.   
+\end{trivlist}
+
+\begin{theorem}
+The OPRF protocol described in Figure~\ref{figure:OPRF-from-PEPRF} 
+is secure in the semi-honest model assuming $\mathsf{H}$ is a random oracle and $F$ is a family of PEPRFs.
+\end{theorem}
+
+\begin{proof}
+In the above construction $F_{sk}(x): SK \times \{0,1\}^\ell \rightarrow Y$ is defined as $G_{sk}(\mathsf{H}(x))$. 
+By assuming $\mathsf{H}$ is a random oracle, 
+we can reduce the pseudorandomness of $F$ to the weak pseudorandomness of $G$. 
+In other words, $\mathsf{H}$ amplifies weak pseudorandomness to standard pseudorandomness 
+by leveraging \emph{programmability}. 
+
+We then prove the above construction is indeed a secure OPRF protocol. 
+We exhibit simulators $\mathsf{Sim}_{P_1}$ and $\mathsf{Sim}_{P_2}$ for simulating corrupt $P_1$ and $P_2$ respectively, 
+and argue the indistinguishability of the simulated transcript from the real execution. 
+
+\begin{trivlist}
+\item \textbf{Security against corrupt server.} $\mathsf{Sim}_{P_1}$ simulates the view of corrupt server $P_1$, 
+    which consists of $P_1$'s randomness, input, output and received messages.
+    We formally show $\mathsf{Sim}_{P_1}$'s simulation is indistinguishable from the real execution 
+    via a sequence of hybrid transcripts. 
+
+\item $\text{Hybrid}_0$: $P_1$'s view in the real protocol.
+
+\item $\text{Hybrid}_1$: Given $P_1$'s input $X$, $\mathsf{Sim}_{P_1}$ 
+    chooses the randomness for $P_1$ (i.e., picks $r_i \sample R$ to sample $(z_i, w_i) \in \mathsf{R}_L$), 
+    and simulates with the knowledge of $X$. 
+    $\mathsf{Sim}_{P_1}$ outputs $(\mathsf{H}(x_i)+z_i, \dots, \mathsf{H}(x_n)+z_n)$.      
+    Clearly, $\mathsf{Sim}_{P_1}$'s simulated view in $\text{Hybrid}_1$ is identical to $P_1$'s real view. 
+
+\item $\text{Hybrid}_2$: $\mathsf{Sim}_{P_1}$ simulates without the knowledge of $X$. 
+    $\mathsf{Sim}_{P_1}$ picks $r_i \sample R$ to sample $(z_i, w_i) \in \mathsf{R}_L$, 
+    then outputs $(z_1, \dots, z_n)$.     
+
+Clearly, the simulated view in $\text{Hybrid}_1$ and $\text{Hybrid}_2$ are identical due to $z_i$ 
+distributes uniformly at random over $L$. 
+\end{trivlist}
+
+\begin{trivlist}
+\item \textbf{Security against corrupt client.} $\mathsf{Sim}_{P_2}$ simulates the view of corrupt client $P_2$, 
+    which consists of $P_2$'s randomness, input, output and received messages.
+    We formally show $\mathsf{Sim}_{P_2}$'s simulation is indistinguishable from the real execution via a sequence 
+    of hybrid transcripts. 
+
+
+\item $\text{Hybrid}_0$: $P_2$'s view in the real protocol.
+
+\item $\text{Hybrid}_1$: Given $P_2$'s input $x_i$, randomness $r_i$, 
+    and output $pk$ and $y_i$, 
+    $\mathsf{Sim}_{P_2}$ samples $(z_i, w_i) \in \mathsf{R}_L$, 
+    then simulates the received messages $v_i:= y_i + \text{PEPRF}.\mathsf{PubEval}(pk, z_i, w_i)$. 
+
+Clearly, the simulated view in $\text{Hybrid}_1$ and $\text{Hybrid}_2$ are identical 
+due to the publicly evaluable property of the underlying PEPRF. 
+\end{trivlist}
+This proves the theorem. 
+\end{proof}
+
+\section{Instantiations of Input-Homomorphic PEPRF}
+It remains to give efficient instantiations of input-homomorphic PEPRF.
+
+\subsection{Input-Homomorphic PEPRF from the DDH Assumption}\label{subsec:IHPEPRF-from-DDH}
+\begin{itemize}
+\item $\mathsf{Setup}(1^\kappa)$: on input a security parameter $\kappa$, 
+    runs $(\mathbb{G}, g, p) \leftarrow \mathsf{GroupGen}(1^\kappa)$, 
+    output public parameter $pp$ specifying $(F, PK, SK, X, \allowbreak Y, L, W)$, 
+    where $PK = \mathbb{G}$, $SK = \mathbb{Z}_p$, $X = L = Y = \mathbb{G}$, $W = \mathbb{Z}_p$, 
+    $F: SK \times X \rightarrow Y$ is defined as $F_{sk}(x):=x^{sk}$, 
+    $(x, w) \in \mathsf{R}_L$ iff $g^w = x$.   
+
+\item $\mathsf{KeyGen}(pp)$: on input $pp$, picks secret key $sk \sample \mathbb{Z}_p$ 
+        and computes public key $pk \leftarrow g^{sk}$. 
+    
+\item $\mathsf{PrivEval}(sk, x)$: on input $sk$ and $x \in X$, output $y \leftarrow x^{sk}$.  
+
+\item $\mathsf{PubEval}(pk, x, w)$: on input $pk$ and $x \in L$ together with a witness $w \in W$, 
+        output $y \leftarrow pk^w$.  
+\end{itemize}
+
+\begin{trivlist}
+\item \textbf{Input homomorphic.} $\forall x_1, x_2 \in X$, we have $(x_1 \cdot x_2)^{sk} = x_1^{sk} \cdot x_2^{sk}$. 
+\end{trivlist}
+
+\begin{theorem}
+The above construction is weakly pseudorandom if the DDH assumption holds. 
+\end{theorem}
+
+\begin{proof}
+The weak pseudorandomness immediately follows from the DDH assumption. 
+We omit the security proof here due to its straightforwardness. 
+\end{proof}
+
+The above construction and security proof directly carry to the weak-pusudorandom EGA setting.
+
+\subsection{Input-Homomorphic PEPRF from the LWE Assumption}\label{subsec:IHPEPRF-from-LWE}
+LWE is parameterized by positive integers $n$ and $q$, and an error distribution $\chi$ over $\mathbb{Z}$. 
+For concreteness, $n$ and $q$ can be thought of as roughly the same as in SIS, 
+and $\chi$ is usually taken to be a discrete Gaussian of width $\alpha q$ for some $\alpha < 1$, 
+which is often called the relative ``error rate''. 
+
+
+\begin{definition}[LWE distribution] 
+For a vector $s \in \mathbb{Z}_q^n$ called the secret, the LWE distribution $A_{s,\chi}$ 
+over $\mathbb{Z}_q^n \times \mathbb{Z}_q$ is sampled by choosing $a \in \mathbb{Z}_q^n$ uniformly at random, 
+choosing $e \sample \chi$, and outputting $(a, b = \langle s, a\rangle + e \bmod q)$.
+\end{definition}
+
+\begin{definition}[Decision-LWE$_{n,q,\chi,m}$]
+Given $m$ independent samples $(a_i, b_i) \in \mathbb{Z}_q^n \times \mathbb{Z}_q$ where every sample is distributed 
+according to either: (1) $A_{s,\chi}$ for a uniformly random $s \in \mathbb{Z}_q$ (fixed for all samples), 
+or (2) the uniform distribution, distinguish which is the case (with non-negligible advantage).
+\end{definition}
+
+
+We give a LWE-based PEPRF as below. 
+\begin{itemize}
+\item $\mathsf{Setup}(1^\kappa)$: on input a security parameter $\kappa$, first chooses a uniformly random 
+    $\mathbf{A} \in \mathbb{Z}_q^{n \times m}$, 
+    output public parameter $pp$ specifying $(F, PK, SK, X, \allowbreak Y, L, W)$, 
+    where $PK = \mathbb{Z}_q^m$, $SK = \mathbb{Z}_q^n$, $X = L = \mathbb{Z}_q^{n+1}$, $W = \{0,1\}^{m+1}$. 
+    Here the collection of $\mathcal{NP}$ languages indexed by $pk = \mathbf{u} \in \mathbb{Z}_q^m$ is defined as:
+    \begin{equation*}
+        L_\mathbf{u} = \{\mathbf{x} = (\mathbf{c}, v) \in \mathbb{Z}_q^{n+1} | \exists 
+    \mathbf{w} = (\mathbf{a} \in \{0,1\}^m, b \in \{0,1\}) \text{~s.t.~} \mathbf{c} = \mathbf{A} \cdot \mathbf{a}, 
+    v = \mathbf{u}^t \cdot \mathbf{a} + b \cdot \lfloor q/2 \rceil\}
+    \end{equation*}   
+
+    $F: SK \times X \rightarrow Y$ is defined as 
+    $F_{\mathbf{s}}(\mathbf{x} = (\mathbf{c}, v)):= \mathsf{Decode}(v - \mathbf{s}^t \cdot \mathbf{c})$, 
+    where $\mathsf{Decode}(z)$ outputs ``0'' if $z$ is closer to $0$ or ``1'' if $z$ is closer to $\lfloor q/2 \rceil$ 
+    modulo $q$.  
+
+\item $\mathsf{KeyGen}(pp)$: on input $pp$, first picks a secret key $\mathbf{s} \sample \mathbb{Z}_q^n$, 
+    then picks $\mathbf{e} \sample \chi^m$ 
+    and computes public key $\mathbf{u} \leftarrow \mathbf{A}^t \cdot \mathbf{s} + \mathbf{e} \in \mathbb{Z}_q^m$. 
+    
+\item $\mathsf{PrivEval}(\mathbf{s}, \mathbf{x})$: on input $\mathbf{s}$ and $\mathbf{x} = (\mathbf{c}, v)$, 
+    output $y \leftarrow \mathsf{Decode}(v - \mathbf{s}^t \cdot \mathbf{c}) \in \{0,1\}$.  
+
+\item $\mathsf{PubEval}(\mathbf{u}, \mathbf{x}, \mathbf{w})$: on input public key $\mathbf{u}$ 
+    and $\mathbf{x} = (\mathbf{u}, v) \in L$ together with a witness $\mathbf{w}=(\mathbf{a}, b) \in W$, 
+    output $y \leftarrow b$.  
+\end{itemize}
+
+\begin{trivlist}
+\item \textbf{Correctness.} Note that $\mathbf{s}^t \cdot \mathbf{c} - \mathbf{u}^t \cdot \mathbf{a} = 
+    \mathbf{s}^t \cdot \mathbf{A} \cdot \mathbf{a} - (\mathbf{A}^t \cdot \mathbf{s}  + \mathbf{e})^t \cdot \mathbf{a} 
+    = \mathbf{e}^t \cdot \mathbf{a} \in \mathbb{Z}_q$. 
+    The correctness holds as long as $(\mathbf{e}^t \cdot \mathbf{a})/q$ is negligible in $\kappa$.
+
+\item \textbf{Input homomorphic.} For any $\mathbf{x}_1 = (\mathbf{A} \cdot \mathbf{a}_1, 
+    \mathbf{u}^t \cdot \mathbf{a}_1 + b_1 \cdot \lfloor q/2\rceil)$ 
+    and $\mathbf{x}_2 = (\mathbf{A} \cdot \mathbf{a}_2, 
+    \mathbf{u}^t \cdot \mathbf{a}_2 + b_2 \cdot \lfloor q/2\rceil)$, we have: 
+\begin{eqnarray*}
+    F_\mathbf{s}(\mathbf{x}_1+\mathbf{x}_2) &=& \mathsf{Decode}(v_1 - \mathbf{s}^t \cdot \mathbf{c}_1 + 
+        v_2 - \mathbf{s}^t \cdot \mathbf{c}_2)\\ 
+        &=& \mathsf{Decode}(\mathbf{e}^t \cdot \mathbf{a}_1 + b_1\lfloor q/2\rceil + 
+        \mathbf{e}^t \cdot \mathbf{a}_2 + b_2\lfloor q/2\rceil)\\ 
+        &\approx& \mathsf{Decode}((b_1+b_2)\lfloor q/2\rceil) \\
+        & = & b_1+b_2 \approx F_\mathbf{s}(\mathbf{x}_1) + F_\mathbf{s}(\mathbf{x}_2)
+\end{eqnarray*} 
+
+\item \textbf{Security.} The weak pseudorandomness follows from the following hybrid arguments. 
+
+\begin{itemize}
+    \item $\text{Game}_0$: the original security game. 
+        $\mathcal{A}$ gets to see $(pk = \mathbf{u}, \mathbf{x} \sample L_\mathbf{u}, k^*)$, 
+        where $k^* = b$ if $\beta = 0$ and $k^*$ is a random bit if $\beta=1$.  
+
+    \item $\text{Game}_1$: same as $\text{Game}_0$ except that $\mathcal{CH}$ changes $\mathbf{u}$ 
+        from the LWE distribution to a uniform distribution over $\mathbb{Z}_q^m$.  
+        By the LWE assumption, we have $\text{Game}_0 \approx_c \text{Game}_1$. 
+
+    \item $\text{Game}_2$: same as $\text{Game}_1$ except that $\mathcal{CH}$ changes $\mathbf{x}$ 
+        to a uniform distribution over $\mathbb{Z}_q^{n+1}$. 
+        By the leftover hash lemma, we have $\text{Game}_1 \approx_s \text{Game}_2$. 
+        Clearly, (even unbounded) $\mathcal{A}$'s advantage in $\text{Game}_2$ is zero.  
+\end{itemize}
+
+\end{trivlist}
+
+\subsection{Input-Homomorphic PEPRF from the Ring-LWR Assumption}
+Define ring $R_q=\mathbb{Z}_q[X]/(X^n+1), R_p=\mathbb{Z}_p[X]/(X^n+1)$, where $q>p\geq 2$ are integers, $n=2^k$ for integer $k>0$, and $X^n+1$ is the $2^{k+1}$-th cyclotomic polynomial.
+
+Define the modular function $[\cdot]_p: \mathbb{Z}\rightarrow\mathbb{Z}_p$ as $[x]_p= x \mod p$, and
+define the rounding function $\lfloor\cdot\rceil_p: \mathbb{Z}_q\rightarrow\mathbb{Z}_p$ as $\lfloor x\rceil_p=\lfloor\frac{p}{q}\cdot x\rceil \mod p$. The definition can be extended naturally in a coefficient-wise manner on $R_q$ and $R_p$.
+
+\begin{itemize}
+\item $\mathsf{Setup}(1^\kappa):$ define $pp=(F, PK, SK, X, Y, L, W)$, where $PK=R_p$, $SK=R_q$, $X=Y=L=R_p$, $W=R_q$. \\
+    $F:SK\times X\rightarrow Y$ is defined as $F_{sk}(x)=\lfloor x\cdot sk\rceil_p$. \\
+    For public parameter $a\in R_q$, $(x,w)\in R_L$ iff $x=\lfloor aw\rceil_p$.
+    %The language $L=\{x\in L | \exists r\in W, s.t., x=\lfloor ar\rceil_p\}$.
+
+\item $\mathsf{KeyGen}(pp):$ on input $pp$, select the secret key $sk\leftarrow \chi(R_q)$, where $\chi$ is a sparse distribution over $R_q$, and set the public key as $pk\leftarrow \lfloor a\cdot sk\rceil_p$.
+
+\item $\mathsf{PrivEval}(sk,x):$ on input $sk$ and $x\in X$, output $y\leftarrow \lfloor x\cdot sk\rceil_p$.
+
+\item $\mathsf{PubEval}(pk,x,w):$ on input $pk$ and $x\in L$ with the witness $w\in W$, output $y\leftarrow \lfloor pk\cdot w\rceil_p$.
+
+\end{itemize}
+
+Properties of the above ring-LWR based IHPEPRF construction:
+\begin{trivlist}
+\item \textbf{Correctness.} For any $\kappa \in \mathbb{N}$, any $pp\leftarrow\mathsf{Setup}(1^\kappa)$ 
+    and any $(pk, sk)\leftarrow\mathsf{KeyGen}(pp)$:
+\begin{itemize}
+    \item $\forall x\in X$: $F_{sk}(x) = \lfloor x\cdot sk\rceil_p = \mathsf{PrivEval}(sk,x)$.
+    \item $\forall x\in L$ with witness $w$:
+    \[
+    \mathsf{PubEval}(pk,x,w)= \lfloor pk\cdot w\rceil_p = \lfloor[\lfloor\frac{p}{q}\cdot a\cdot sk\rceil]_p\cdot w\rceil_p,
+    \]
+    
+    \[
+    F_{sk}(x)=\lfloor x\cdot sk \rceil_p =\lfloor[\lfloor\frac{p}{q}\cdot a\cdot w\rceil]_p\cdot sk\rceil_p
+    \]
+\end{itemize}
+\end{trivlist}
+
+% \blue{
+% I do not understand the following notations:
+% \begin{enumerate}
+% \item $\lfloor x\cdot sk\rceil_p$: here $x \in R_p$, $sk \in R_q$, how to define the multipilication between them?
+
+% \item What does $[\lfloor\frac{p}{q}\cdot a\cdot sk\rceil]_p$ mean?
+% \end{enumerate}
+
+% By the way, why we have to define $pk \in R_p$ rather than $pk \in R_q$?
+% }
+
+% \textbf{A bit troublesome to make them equal: $q\gg p$}
+
+\begin{trivlist}
+\item \textbf{Input homomorphic.} A bit tricky while dealing with the rounding function: it is not linear.
+\[F_{sk}(x_1+x_2)=[\lfloor\frac{p}{q}(x_1+x_2)\cdot sk\rceil]_p,\]
+\[F_{sk}(x_1)+F_{sk}(x_2)=[\lfloor\frac{p}{q}\cdot x_1\cdot sk\rceil]_p+[\lfloor\frac{p}{q}\cdot x_2\cdot sk\rceil]_p.\]
+If $\lfloor x_1\rceil=\lfloor x_2\rceil$, then $F_{sk}(x_1+x_2)=F_{sk}(x_1)+F_{sk}(x_2)$.
+\end{trivlist}
+
+\begin{trivlist}
+\item \textbf{Security.} Guaranteed by the ring LWR assumption: $(a, \lfloor a\cdot s\rceil_p)\approx(a,u)$.
+\end{trivlist}
+
+\magenta{The above construction is floppy and could be problematic.}  
+
+% \blue{Shall we also take into account the public key in the two distribution ensembles? }
+
+\section{Concrete Post-quantum Secure OPRF}
+
+By plugging PEPRF from weak pseudorandom EGA in Section~\ref{subsec:IHPEPRF-from-DDH} to our generic construction, 
+we obtain a OPRF with plausible post-quantum security.  
+
+\magenta{We encounter a technical hurdle when plugging the instantiation in Section~\ref{subsec:IHPEPRF-from-LWE} to our generic construction. 
+This is because the weak pseudorandomness of $F$ is tied to special distribution over $L_\mathbf{u}$, not a uniform distribution. 
+The consequence is that we can not assume there exists a random oracle from $\{0,1\}^*$ to $L_\mathbf{u}$ anymore. 
+One attempt is to remove $v$ from $\mathbf{x}$ and only keep $\mathbf{c}$. 
+However, this somehow requires a fuzzy and homomorphic randomness extractor, which again seems quite tough.}  
+
+
+% \section*{Acknowledgments}
+  
+
+\bibliographystyle{alpha}
+\bibliography{\bibpath/mycrypto}
+
+
+\appendix
+
+\section{Missing Definitions}
+
+\end{document}
+
